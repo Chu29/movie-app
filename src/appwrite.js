@@ -1,11 +1,12 @@
 import { Client, Databases, ID, Permission, Query, Role } from "appwrite";
+import { APPWRITE_API_ENDPOINT, MOVIE_POSTER_PATH } from "./utils/constants";
 
 const PROJECT_ID = import.meta.env.VITE_APPWRITE_PROJECT_ID;
 const DATABASE_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID;
 const COLLECTION_ID = import.meta.env.VITE_APPWRITE_COLLECTION_ID;
 
 const client = new Client()
-  .setEndpoint("https://fra.cloud.appwrite.io/v1")
+  .setEndpoint(APPWRITE_API_ENDPOINT)
   .setProject(PROJECT_ID);
 
 const database = new Databases(client);
@@ -23,18 +24,12 @@ export const updateSearchCount = async (searchTerm, movie) => {
         count: doc.count + 1,
       });
     } else {
-      await database.createDocument(
-        DATABASE_ID,
-        COLLECTION_ID,
-        ID.unique(),
-        {
-          searchTerm,
-          count: 1,
-          movie_id: movie.id,
-          poster_url: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
-        },
-        [Permission.read(Role.any())]
-      );
+      await database.createDocument(DATABASE_ID, COLLECTION_ID, ID.unique(), {
+        searchTerm,
+        count: 1,
+        movie_id: movie.id,
+        poster_url: `${MOVIE_POSTER_PATH}${movie.poster_path}`,
+      });
     }
   } catch (error) {
     console.error(error);
