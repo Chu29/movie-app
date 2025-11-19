@@ -1,5 +1,6 @@
 import Search from "./components/Search";
 import MovieCard from "./components/MovieCard";
+import Spinner from "./components/Spinner";
 import { useState, useEffect } from "react";
 
 const API_BASE_URL = "https://api.themoviedb.org/3";
