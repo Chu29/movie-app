@@ -4,60 +4,66 @@ import Spinner from "./components/Spinner";
 import { useState, useEffect } from "react";
 import { useDebounce } from "react-use";
 import { getTrendingMovies, updateSearchCount } from "./appwrite";
-
-const API_BASE_URL = "https://api.themoviedb.org/3";
-
-const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
-
-const API_OPTIONS = {
-  method: "GET",
-  headers: {
-    accept: "application/json",
-    Authorization: `Bearer ${API_KEY}`,
-  },
-};
+import { API_BASE_URL, API_OPTIONS } from "./utils/constants";
+import { useQuery } from "@tanstack/react-query";
+import { fetchMovies } from "./services/movies.service";
+import { useParams } from "react-router";
 
 export default function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [movies, setMovies] = useState([]);
   const [trendingMovies, setTrendingMovies] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm]);
 
-  const fetchMovies = async (query = "") => {
-    try {
-      const endpoint = query
-        ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
-        : `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+  const { query } = useParams();
 
-      const response = await fetch(endpoint, API_OPTIONS);
+  console.log("Params", query)
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch movies");
-      }
-      const data = await response.json();
+  const { data, isLoading, isError, error, isPending } = useQuery({
+    queryKey: ["movie", query],
+    queryFn: () => fetchMovies(query),
+  });
+  console.log(data);
 
-      if (data.Response === "False") {
-        setErrorMessage(data.Error || "Failed to fetch movies");
-        setMovies([]);
-        return;
-      }
+  // useEffect(() => {
+  //   if (query && data.results.length > 0) {
+  //     updateSearchCount(query, data.results[0]);
+  //   }
+  // }, [data.results, query]);
 
-      setMovies(data.results || []);
+  // const fetchMovies = async (query = "") => {
+  //   try {
+  //     const endpoint = query
+  //       ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
+  //       : `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
 
-      if (query && data.results.length > 0) {
-        await updateSearchCount(query, data.results[0]);
-      }
-    } catch (error) {
-      console.log(`Error fetching movies: ${error}`);
-      setErrorMessage("Error fetching movies. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  //     const response = await fetch(endpoint, API_OPTIONS);
+
+  //     if (!response.ok) {
+  //       throw new Error("Failed to fetch movies");
+  //     }
+  //     const data = await response.json();
+
+  //     if (data.Response === "False") {
+  //       setErrorMessage(data.Error || "Failed to fetch movies");
+  //       setMovies([]);
+  //       return;
+  //     }
+
+  //     setMovies(data.results || []);
+
+  //     if (query && data.results.length > 0) {
+  //       await updateSearchCount(query, data.results[0]);
+  //     }
+  //   } catch (error) {
+  //     console.log(`Error fetching movies: ${error}`);
+  //     setErrorMessage("Error fetching movies. Please try again.");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   useEffect(() => {
     fetchMovies(debouncedSearchTerm);
@@ -106,13 +112,13 @@ export default function App() {
 
         <section className="all-movies">
           <h2>All Movies</h2>
-          {isLoading ? (
+          {isPending ? (
             <Spinner />
           ) : errorMessage ? (
-            <p className="text-red-500">{errorMessage}</p>
+            <p className="text-red-500">{error.message}</p>
           ) : (
             <ul>
-              {movies.map((movie) => (
+              {data.results.map((movie) => (
                 <MovieCard key={movie.id} movie={movie} />
               ))}
             </ul>
